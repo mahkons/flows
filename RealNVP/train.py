@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 
 from RealNVP import RealNVP, RealNVPImageTransform
 
-BATCH_SIZE = 32
+BATCH_SIZE = 128
+LR = 1e-3
+NUM_COUPLING = 5
+HIDDEN_CHANNELS = 32
 device = torch.device("cuda")
 
 def sample(model):
@@ -20,18 +23,21 @@ def sample(model):
 
 def train(dataset):
     dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    image_shape = dataset[0][0].shape
     model = RealNVP(
-            image_shape=(3, 64, 64),
-            hidden_channels=32,
-            num_coupling=5,
-            lr=1e-3,
+            image_shape=image_shape,
+            hidden_channels=HIDDEN_CHANNELS,
+            num_coupling=NUM_COUPLING,
+            lr=LR,
             device=device
     )
 
-    for epoch in range(2):
-        for image, _ in dataloader:
+    epochs = 2
+    for epoch in range(epochs):
+        for batch_idx, (image, _) in enumerate(dataloader):
             loss = model.train(image)
-            print(loss)
+            print("Epoch {}/{} Batch {}/{} Loss: {}"
+                    .format(epoch, epochs, batch_idx, len(dataloader), loss))
         model.save("../pretrained/RealNVP.torch")
 
 
@@ -41,12 +47,12 @@ def load_dataset(dataset):
         train_dataset = torchvision.datasets.CelebA("../datasets", split="train", download=True, transform=transform)
         test_dataset = torchvision.datasets.CelebA("../datasets", split="test", download=True, transform=transform)
     elif dataset == "mnist":
-        train_dataset = torchvision.datasets.MNIST("../datasets", split="train", download=True, transform=transform)
-        test_dataset = torchvision.datasets.MNIST("../datasets", split="test", download=True, transform=transform)
+        train_dataset = torchvision.datasets.MNIST("../datasets", train=True, download=True, transform=transform)
+        test_dataset = torchvision.datasets.MNIST("../datasets", train=False, download=True, transform=transform)
     return train_dataset, test_dataset
 
 
 
 if __name__ == "__main__":
-    train_dataset, test_dataset = load_dataset("celeba")
+    train_dataset, test_dataset = load_dataset("mnist")
     train(train_dataset)
