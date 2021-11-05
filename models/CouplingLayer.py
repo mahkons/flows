@@ -8,7 +8,7 @@ class CouplingLayer(Flow):
         super(CouplingLayer, self).__init__()
 
         self.register_buffer("mask", mask)
-        self.register_parameter("scale_scale", torch.tensor(1., dtype=torch.float))
+        self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
 
         self.scale_net = nn.Sequential(
             nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1),
@@ -28,12 +28,12 @@ class CouplingLayer(Flow):
 
     def forward_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.scale_scale * self.scale_net(masked_x)
+        log_s = self.log_scale_scale + self.scale_net(masked_x)
         t = self.translate_net(masked_x)
-        return masked_x + (1 - self.mask) * (x * torch.exp(log_s) + t)
+        return masked_x + (1 - self.mask) * (x * torch.exp(log_s) + t), (log_s * (1 - self.mask)).sum(dim=(1,2,3))
 
     def inverse_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.scale_scale * self.scale_net(masked_x)
+        log_s = self.log_scale_scale + self.scale_net(masked_x)
         t = self.translate_net(masked_x)
-        return masked_x + (1 - self.mask) * (x * torch.exp(log_s) + t)
+        return masked_x + (1 - self.mask) * ((x - t) * torch.exp(-log_s)), -(log_s * (1 - self.mask)).sum(dim=(1,2,3))

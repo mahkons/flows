@@ -16,7 +16,7 @@ class Flow(nn.Module):
 
     def inverse_flow(self, x):
         """ returns inverse flow computation result and log of jacobian  """
-        pass NotADirectoryError
+        raise NotImplementedError
 
 
 
@@ -38,7 +38,7 @@ class SequentialFlow(Flow):
 
     def inverse_flow(self, x):
         log_sum = torch.zeros(x.shape[0], dtype=torch.float, device=self.device)
-        for module in reversed(self, flow_modules):
+        for module in reversed(self.flow_modules):
             x, log_jac = module.inverse_flow(x)
             log_sum += log_jac
         return x, log_sum

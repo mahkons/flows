@@ -2,7 +2,7 @@ import torch
 import numpy
 
 def __get_checkerboard_mask(shape, device, dtype):
-    mesh_grid = torch.meshgrid(*[torch.arange(s, device=device, dtype=int) for s in shape])
+    mesh_grid = torch.meshgrid(*[torch.arange(s, device=device, dtype=int) for s in shape], indexing="ij")
     grid = torch.zeros(shape, device=device, dtype=int)
     for mgrid in mesh_grid:
         grid += mgrid
