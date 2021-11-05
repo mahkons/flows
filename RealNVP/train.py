@@ -27,10 +27,6 @@ def train(dataset):
             lr=1e-3,
             device=device
     )
-    model.load("../pretrained/RealNVP.torch")
-    sample(model)
-
-    return
 
     for epoch in range(2):
         for image, _ in dataloader:
