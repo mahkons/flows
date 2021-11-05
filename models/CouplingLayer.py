@@ -4,11 +4,13 @@ import torch.nn as nn
 from .Flow import Flow
 
 class CouplingLayer(Flow):
-    def __init__(self, image_channels, hidden_channels, mask):
+    def __init__(self, image_shape, hidden_channels, mask):
         super(CouplingLayer, self).__init__()
+        assert(image_shape == mask.shape)
+        image_channels = image_shape[0]
 
         self.register_buffer("mask", mask)
-        self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
+        self.register_parameter("log_scale_scale", nn.Parameter(torch.zeros(image_shape, dtype=torch.float)))
 
         self.scale_net = nn.Sequential(
             nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1),

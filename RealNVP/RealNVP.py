@@ -5,6 +5,7 @@ import torchvision.transforms as T
 from models import SequentialFlow, CouplingLayer
 from utils import get_mask
 
+SCALE_L2_REG_COEFF = 5e-5
 
 class RealNVP():
     def __init__(self, image_shape, hidden_channels, num_coupling, lr, device):
@@ -14,7 +15,7 @@ class RealNVP():
 
         mask = get_mask(image_shape, "checkerboard", device)
         self.model = SequentialFlow([
-            CouplingLayer(image_shape[0], hidden_channels, mask if i % 2 == 0 else 1 - mask)
+            CouplingLayer(image_shape, hidden_channels, mask if i % 2 == 0 else 1 - mask)
             for i in range(num_coupling)
         ])
         self.model.to(device)
@@ -27,13 +28,17 @@ class RealNVP():
         images = images.to(self.device)
         prediction, log_jac = self.model.forward_flow(images)
         log_prob = self.prior.log_prob(prediction).sum(dim=(1,2,3)) + log_jac
+        log_prob = log_prob.mean()
 
-        loss = -log_prob.mean()
+        l2reg = sum([SCALE_L2_REG_COEFF * (torch.exp(module.log_scale_scale) ** 2).sum()
+            for module in self.model.flow_modules])
+
+        loss = l2reg - log_prob
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        return loss.item()
+        return log_prob.item(), l2reg
 
     def sample(self, batch_size):
         with torch.no_grad():
@@ -58,8 +63,7 @@ class RealNVP():
 """
     center crop and resize as in paper
     uniform noise to dequantize input
-    logit(0.05 + 0.95 * image) as in paper
-    scale to -1., 1.
+    logit(a + (1 - 2a) * image) as in paper
 """
 class RealNVPImageTransform():
     def __init__(self, dataset):
@@ -77,7 +81,7 @@ class RealNVPImageTransform():
         image = self.base_transform(image)
         noise = (torch.rand_like(image) - 0.5) * (1/256.)
         image = (image + noise).clip(0., 1.)
-        return torch.logit(self.alpha +  (1 - 2 * self.alpha) * image, eps=1e-3)
+        return torch.logit(self.alpha +  (1 - 2 * self.alpha) * image)
 
 
 

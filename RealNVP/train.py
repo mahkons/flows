@@ -11,7 +11,7 @@ BATCH_SIZE = 128
 LR = 1e-3
 NUM_COUPLING = 5
 HIDDEN_CHANNELS = 32
-device = torch.device("cuda")
+device = torch.device("cpu")
 
 def sample(model):
     images = model.sample(10)
