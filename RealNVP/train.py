@@ -52,7 +52,7 @@ def train(train_dataset, test_dataset):
     for epoch in range(epochs):
         print("Epoch {}/{}".format(epoch, epochs))
         sum_nll_loss, sum_l2reg, steps = 0., 0., 0
-        D = torch.prod(torch.tensor(image_shape))
+        D = torch.prod(torch.tensor(image_shape)).item()
         for batch_idx, (image, _) in enumerate(dataloader):
             nll_loss, l2reg = model.train(image)
 
@@ -63,7 +63,7 @@ def train(train_dataset, test_dataset):
             if batch_idx % 100 == 0:
                 log().add_plot_point("loss", [epoch, sum_nll_loss / steps, sum_l2reg / steps])
 
-        log().add_plot_point("test", [epoch, test(test_dataset, model)])
+        log().add_plot_point("test", [epoch, test(test_dataset, model)/D])
         model.save("../pretrained/RealNVP.torch")
 
 
