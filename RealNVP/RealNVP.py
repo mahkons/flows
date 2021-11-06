@@ -38,7 +38,7 @@ class RealNVP():
         loss.backward()
         self.optimizer.step()
 
-        return log_prob.item(), l2reg
+        return log_prob.item(), l2reg.item()
 
     def sample(self, batch_size):
         with torch.no_grad():

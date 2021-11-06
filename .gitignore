@@ -11,3 +11,6 @@ datasets/
 
 # models
 pretrained/
+
+# logs
+logdir/

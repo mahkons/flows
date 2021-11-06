@@ -4,18 +4,19 @@ sys.path.append("..")
 import torch
 import torchvision
 import matplotlib.pyplot as plt
+import math
 
 from RealNVP import RealNVP, RealNVPImageTransform
 
-BATCH_SIZE = 128
+BATCH_SIZE = 16
 LR = 1e-3
-NUM_COUPLING = 5
-HIDDEN_CHANNELS = 32
+NUM_COUPLING = 10
+HIDDEN_CHANNELS = 64
 device = torch.device("cpu")
 
 def sample(model):
     images = model.sample(10)
-    images = torch.sigmoid(images)
+    images = ((torch.sigmoid(images) - 0.01) / 0.98).clip(0., 1.)
     grid_img = torchvision.utils.make_grid(images, nrow=5)
     plt.imshow(grid_img.permute(1, 2, 0).cpu().numpy())
     plt.show()
@@ -38,6 +39,11 @@ def train(dataset):
             loss = model.train(image)
             print("Epoch {}/{} Batch {}/{} Loss: {}"
                     .format(epoch, epochs, batch_idx, len(dataloader), loss))
+
+            D = torch.prod(torch.tensor(image_shape))
+            nbits = -loss[0] / (D * math.log(2)) - math.log(1 - 0.02) / math.log(2) + 8 \
+                    + (torch.log(torch.sigmoid(image)) + torch.log(1 - torch.sigmoid(image))).sum(dim=(1,2,3)).mean() / (D * math.log(2))
+            print("NBits {}".format(nbits))
         model.save("../pretrained/RealNVP.torch")
 
 
@@ -54,5 +60,6 @@ def load_dataset(dataset):
 
 
 if __name__ == "__main__":
+    init_logger("../logdir")
     train_dataset, test_dataset = load_dataset("mnist")
     train(train_dataset)
