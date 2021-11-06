@@ -2,31 +2,22 @@ import torch
 import torch.nn as nn
 
 from .Flow import Flow
+from .ResNet import ResnetBlock
 
 class CouplingLayer(Flow):
-    def __init__(self, image_shape, hidden_channels, mask):
+    def __init__(self, image_shape, hidden_channels, num_resnet, mask):
         super(CouplingLayer, self).__init__()
         assert(image_shape == mask.shape)
         image_channels = image_shape[0]
 
         self.register_buffer("mask", mask)
-        self.register_parameter("log_scale_scale", nn.Parameter(torch.zeros(image_shape, dtype=torch.float)))
+        self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
 
-        self.scale_net = nn.Sequential(
-            nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1),
-            nn.Tanh()
-        )
-        self.translate_net = nn.Sequential(
-            nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1)
-        )
+        modules = [nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1), nn.ReLU()] \
+            + [ResnetBlock(hidden_channels) for _ in range(num_resnet)] \
+            + [nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1)]
+        self.scale_net = nn.Sequential(*modules, nn.Tanh())
+        self.translate_net = nn.Sequential(*modules)
 
     def forward_flow(self, x):
         masked_x = x * self.mask

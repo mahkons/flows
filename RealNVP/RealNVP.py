@@ -8,14 +8,14 @@ from utils import get_mask
 SCALE_L2_REG_COEFF = 5e-5
 
 class RealNVP():
-    def __init__(self, image_shape, hidden_channels, num_coupling, lr, device):
+    def __init__(self, image_shape, hidden_channels, num_coupling, num_resnet, lr, device):
         assert(len(image_shape) == 3)
         self.image_shape = image_shape
         self.device = device
 
         mask = get_mask(image_shape, "checkerboard", device)
         self.model = SequentialFlow([
-            CouplingLayer(image_shape, hidden_channels, mask if i % 2 == 0 else 1 - mask)
+            CouplingLayer(image_shape, hidden_channels, num_resnet, mask if i % 2 == 0 else 1 - mask)
             for i in range(num_coupling)
         ])
         self.model.to(device)

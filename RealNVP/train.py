@@ -7,10 +7,12 @@ import matplotlib.pyplot as plt
 import math
 
 from RealNVP import RealNVP, RealNVPImageTransform
+from utils import init_logger, log
 
-BATCH_SIZE = 16
+BATCH_SIZE = 2
 LR = 1e-3
 NUM_COUPLING = 10
+NUM_RESNET = 8
 HIDDEN_CHANNELS = 64
 device = torch.device("cpu")
 
@@ -29,6 +31,7 @@ def train(dataset):
             image_shape=image_shape,
             hidden_channels=HIDDEN_CHANNELS,
             num_coupling=NUM_COUPLING,
+            num_resnet=NUM_RESNET,
             lr=LR,
             device=device
     )
@@ -60,6 +63,6 @@ def load_dataset(dataset):
 
 
 if __name__ == "__main__":
-    init_logger("../logdir")
+    init_logger("../logdir", "tmplol")
     train_dataset, test_dataset = load_dataset("mnist")
     train(train_dataset)
