@@ -24,9 +24,18 @@ def sample(model):
     plt.show()
 
 
-def train(dataset):
-    dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
-    image_shape = dataset[0][0].shape
+def test(test_dataset, model):
+    dataloader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=2 * BATCH_SIZE, shuffle=False, num_workers=4)
+    sum = 0.
+    for images, _ in dataloader:
+        with torch.no_grad():
+            sum += model.get_log_prob(images).mean().item()
+    return sum / len(dataloader)
+    
+
+def train(train_dataset, test_dataset):
+    dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    image_shape = train_dataset[0][0].shape
     model = RealNVP(
             image_shape=image_shape,
             hidden_channels=HIDDEN_CHANNELS,
@@ -36,17 +45,25 @@ def train(dataset):
             device=device
     )
 
+    log().add_plot("loss", ["epoch", "nll_loss", "l2reg"])
+    log().add_plot("test", ["epoch", "nll_loss"])
+
     epochs = 2
     for epoch in range(epochs):
+        print("Epoch {}/{}".format(epoch, epochs))
+        sum_nll_loss, sum_l2reg, steps = 0., 0., 0
+        D = torch.prod(torch.tensor(image_shape))
         for batch_idx, (image, _) in enumerate(dataloader):
-            loss = model.train(image)
-            print("Epoch {}/{} Batch {}/{} Loss: {}"
-                    .format(epoch, epochs, batch_idx, len(dataloader), loss))
+            nll_loss, l2reg = model.train(image)
 
-            D = torch.prod(torch.tensor(image_shape))
-            nbits = -loss[0] / (D * math.log(2)) - math.log(1 - 0.02) / math.log(2) + 8 \
-                    + (torch.log(torch.sigmoid(image)) + torch.log(1 - torch.sigmoid(image))).sum(dim=(1,2,3)).mean() / (D * math.log(2))
-            print("NBits {}".format(nbits))
+            steps += 1
+            sum_nll_loss += nll_loss / D
+            sum_l2reg += l2reg / D
+
+            if batch_idx % 100 == 0:
+                log().add_plot_point("loss", [epoch, sum_nll_loss / steps, sum_l2reg / steps])
+
+        log().add_plot_point("test", [epoch, test(test_dataset, model)])
         model.save("../pretrained/RealNVP.torch")
 
 
@@ -65,4 +82,4 @@ def load_dataset(dataset):
 if __name__ == "__main__":
     init_logger("../logdir", "tmplol")
     train_dataset, test_dataset = load_dataset("mnist")
-    train(train_dataset)
+    train(train_dataset, test_dataset)

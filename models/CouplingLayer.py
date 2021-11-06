@@ -21,12 +21,12 @@ class CouplingLayer(Flow):
 
     def forward_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.log_scale_scale + self.scale_net(masked_x)
+        log_s = self.log_scale_scale * self.scale_net(masked_x)
         t = self.translate_net(masked_x)
         return masked_x + (1 - self.mask) * (x * torch.exp(log_s) + t), (log_s * (1 - self.mask)).sum(dim=(1,2,3))
 
     def inverse_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.log_scale_scale + self.scale_net(masked_x)
+        log_s = self.log_scale_scale * self.scale_net(masked_x)
         t = self.translate_net(masked_x)
         return masked_x + (1 - self.mask) * ((x - t) * torch.exp(-log_s)), -(log_s * (1 - self.mask)).sum(dim=(1,2,3))

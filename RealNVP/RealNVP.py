@@ -24,11 +24,9 @@ class RealNVP():
         self.prior = torch.distributions.Normal(torch.tensor(0., device=device),
                 torch.tensor(1., device=device))
 
+
     def train(self, images):
-        images = images.to(self.device)
-        prediction, log_jac = self.model.forward_flow(images)
-        log_prob = self.prior.log_prob(prediction).sum(dim=(1,2,3)) + log_jac
-        log_prob = log_prob.mean()
+        log_prob = self.get_log_prob(images).mean()
 
         l2reg = sum([SCALE_L2_REG_COEFF * (torch.exp(module.log_scale_scale) ** 2).sum()
             for module in self.model.flow_modules])
@@ -38,7 +36,13 @@ class RealNVP():
         loss.backward()
         self.optimizer.step()
 
-        return log_prob.item(), l2reg.item()
+        return -log_prob.item(), l2reg.item()
+
+    def get_log_prob(self, images):
+        images = images.to(self.device)
+        prediction, log_jac = self.model.forward_flow(images)
+        log_prob = self.prior.log_prob(prediction).sum(dim=(1,2,3)) + log_jac
+        return log_prob
 
     def sample(self, batch_size):
         with torch.no_grad():
