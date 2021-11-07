@@ -12,7 +12,7 @@ from utils import init_logger, log
 BATCH_SIZE = 2
 LR = 1e-3
 NUM_COUPLING = 10
-NUM_RESNET = 8
+NUM_RESNET = 4
 HIDDEN_CHANNELS = 64
 device = torch.device("cpu")
 
@@ -44,6 +44,9 @@ def train(train_dataset, test_dataset):
             lr=LR,
             device=device
     )
+    #  model.load("../pretrained/RealNVP2.torch")
+    #  sample(model)
+    #  return
 
     log().add_plot("loss", ["epoch", "nll_loss", "l2reg"])
     log().add_plot("test", ["epoch", "nll_loss"])

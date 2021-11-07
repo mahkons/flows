@@ -18,6 +18,9 @@ class Flow(nn.Module):
         """ returns inverse flow computation result and log of jacobian  """
         raise NotImplementedError
 
+    def data_init(self, x):
+        return self.forward_flow(x)[0]
+
 
 
 class SequentialFlow(Flow):
@@ -43,3 +46,7 @@ class SequentialFlow(Flow):
             log_sum += log_jac
         return x, log_sum
 
+    def data_init(self, x):
+        for module in self.flow_modules:
+            x = module.data_init(x)
+        return x

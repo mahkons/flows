@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 
-from models import SequentialFlow, CouplingLayer
+from models import SequentialFlow, CouplingLayer, ActNorm
 from utils import get_mask
 
 SCALE_L2_REG_COEFF = 5e-5
@@ -14,22 +14,32 @@ class RealNVP():
         self.device = device
 
         mask = get_mask(image_shape, "checkerboard", device)
-        self.model = SequentialFlow([
-            CouplingLayer(image_shape, hidden_channels, num_resnet, mask if i % 2 == 0 else 1 - mask)
+        self.model = SequentialFlow(sum([
+            [
+                CouplingLayer(image_shape, hidden_channels, num_resnet, mask if i % 2 == 0 else 1 - mask),
+                ActNorm(image_shape[0])
+            ]
             for i in range(num_coupling)
-        ])
+        ], []))
         self.model.to(device)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.prior = torch.distributions.Normal(torch.tensor(0., device=device),
                 torch.tensor(1., device=device))
 
+        self.initialized = False
+
 
     def train(self, images):
+        if not self.initialized:
+            with torch.no_grad():
+                self.model.data_init(images)
+            self.initialized = True
+
         log_prob = self.get_log_prob(images).mean()
 
-        l2reg = sum([SCALE_L2_REG_COEFF * (torch.exp(module.log_scale_scale) ** 2).sum()
-            for module in self.model.flow_modules])
+        l2reg = sum([SCALE_L2_REG_COEFF * (module.log_scale_scale ** 2).sum()
+            for module in self.model.flow_modules if isinstance(module, CouplingLayer)])
 
         loss = l2reg - log_prob
         self.optimizer.zero_grad()
