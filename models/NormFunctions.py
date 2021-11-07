@@ -10,10 +10,10 @@ class ActNorm(Flow):
         self.log_s = nn.Parameter(torch.zeros((dim, 1, 1), dtype=torch.float))
 
     def forward_flow(self, x):
-        return x * torch.exp(-self.log_s) - self.mean, -self.log_s.sum().repeat(x.shape[0])
+        return x * torch.exp(-self.log_s) - self.mean, -self.log_s.sum().repeat(x.shape[0]) * x.shape[2] * x.shape[3]
 
     def inverse_flow(self, x):
-        return (x + self.mean) * torch.exp(self.log_s), self.log_s.sum().repeat(x.shape[0])
+        return (x + self.mean) * torch.exp(self.log_s), self.log_s.sum().repeat(x.shape[0]) * x.shape[2] * x.shape[3]
 
     def data_init(self, x):
         self.mean.data = x.mean(dim=(0, 2, 3))[:, None, None]
