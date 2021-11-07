@@ -8,10 +8,15 @@ def __get_checkerboard_mask(shape, device, dtype):
         grid += mgrid
     return (grid % 2).to(dtype)
 
-
+def __get_channelwise_mask(shape, device, dtype):
+    mask = torch.zeros(shape, device=device, dtype=dtype)
+    mask[:shape[0]//2] = 1
+    return mask
 
 def get_mask(shape, pattern, device, dtype=torch.float):
     if pattern == "checkerboard":
         return __get_checkerboard_mask(shape, device, dtype)
+    elif pattern == "channelwise":
+        return __get_channelwise_mask(shape, device, dtype)
     else:
         raise AttributeError("Unknown pattern: {}".format(pattern))

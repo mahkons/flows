@@ -11,7 +11,6 @@ from utils import init_logger, log
 
 BATCH_SIZE = 2
 LR = 1e-3
-NUM_COUPLING = 10
 NUM_RESNET = 4
 HIDDEN_CHANNELS = 64
 device = torch.device("cpu")
@@ -39,12 +38,11 @@ def train(train_dataset, test_dataset):
     model = RealNVP(
             image_shape=image_shape,
             hidden_channels=HIDDEN_CHANNELS,
-            num_coupling=NUM_COUPLING,
             num_resnet=NUM_RESNET,
             lr=LR,
             device=device
     )
-    #  model.load("../pretrained/RealNVP2.torch")
+    #  model.load("../pretrained/RealNVP.torch")
     #  sample(model)
     #  return
 

@@ -2,25 +2,45 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 
-from models import SequentialFlow, CouplingLayer, ActNorm
+from models import SequentialFlow, Flow, CouplingLayer, ActNorm
 from utils import get_mask
 
 SCALE_L2_REG_COEFF = 5e-5
 
 class RealNVP():
-    def __init__(self, image_shape, hidden_channels, num_coupling, num_resnet, lr, device):
+    def __init__(self, image_shape, hidden_channels, num_resnet, lr, device):
         assert(len(image_shape) == 3)
         self.image_shape = image_shape
         self.device = device
 
+        squeezed_shape = (image_shape[0] * 4, image_shape[1] // 2, image_shape[2] // 2)
         mask = get_mask(image_shape, "checkerboard", device)
-        self.model = SequentialFlow(sum([
-            [
-                CouplingLayer(image_shape, hidden_channels, num_resnet, mask if i % 2 == 0 else 1 - mask),
-                ActNorm(image_shape[0])
-            ]
-            for i in range(num_coupling)
-        ], []))
+        channelwise_mask = get_mask(squeezed_shape, "channelwise", device)
+        self.model = SequentialFlow([
+                CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
+                ActNorm(image_shape[0]),
+                CouplingLayer(image_shape, hidden_channels, num_resnet, 1 - mask),
+                ActNorm(image_shape[0]),
+                CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
+                ActNorm(image_shape[0]),
+                CouplingLayer(image_shape, hidden_channels, num_resnet, 1 - mask),
+                ActNorm(image_shape[0]),
+                Squeeze(),
+
+                CouplingLayer(squeezed_shape, hidden_channels, num_resnet, channelwise_mask),
+                ActNorm(squeezed_shape[0]),
+                CouplingLayer(squeezed_shape, hidden_channels, num_resnet, 1 - channelwise_mask),
+                ActNorm(squeezed_shape[0]),
+                CouplingLayer(squeezed_shape, hidden_channels, num_resnet, channelwise_mask),
+                ActNorm(squeezed_shape[0]),
+                Unsqueeze(),
+
+                CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
+                ActNorm(image_shape[0]),
+                CouplingLayer(image_shape, hidden_channels, num_resnet, 1 - mask),
+                ActNorm(image_shape[0]),
+                CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
+        ])
         self.model.to(device)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
@@ -74,9 +94,36 @@ class RealNVP():
         self.optimizer.load_state_dict(state_dict["optimizer"])
 
 
+def squeeze__(image):
+    b, c, h, w = image.shape
+    image = image.reshape(b, c, h//2, 2, w//2, 2).permute(0, 1, 3, 5, 2, 4)
+    return image.reshape(b, 4 * c, h//2, w//2)
+
+def unsqueeze__(image):
+    b, c, h, w = image.shape
+    image = image.reshape(b, c // 4, 2, 2, h, w).permute(0, 1, 4, 2, 5, 3)
+    return image.reshape(b, c // 4, 2 * h, 2 * w)
+
+
+class Squeeze(Flow):
+    def forward_flow(self, image):
+        return squeeze__(image), torch.zeros(image.shape[0], device=image.device)
+
+    def inverse_flow(self, image):
+        return unsqueeze__(image), torch.zeros(image.shape[0], device=image.device)
+
+
+class Unsqueeze(Flow):
+    def forward_flow(self, image):
+        return unsqueeze__(image), torch.zeros(image.shape[0], device=image.device)
+
+    def inverse_flow(self, image):
+        return squeeze__(image), torch.zeros(image.shape[0], device=image.device)
+
+
 
 """
-    center crop and resize as in paper
+    for celeba center crop and resize as in paper
     uniform noise to dequantize input
     logit(a + (1 - 2a) * image) as in paper
 """
