@@ -31,6 +31,7 @@ class RealNVP():
 
 
     def train(self, images):
+        images = images.to(self.device)
         if not self.initialized:
             with torch.no_grad():
                 self.model.data_init(images)
