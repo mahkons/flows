@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from copy import deepcopy
 
 from .Flow import Flow
 from .ResNet import ResnetBlock
@@ -14,11 +13,16 @@ class CouplingLayer(Flow):
         self.register_buffer("mask", mask)
         self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
 
-        modules = [nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1), nn.ReLU()] \
+        modules_scale = [nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1), nn.ReLU()] \
             + [ResnetBlock(hidden_channels) for _ in range(num_resnet)] \
             + [nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1)]
-        self.scale_net = nn.Sequential(*modules, nn.Tanh())
-        self.translate_net = nn.Sequential(*copy.deepcopy(modules))
+
+        modules_translate = [nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1), nn.ReLU()] \
+            + [ResnetBlock(hidden_channels) for _ in range(num_resnet)] \
+            + [nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1)]
+
+        self.scale_net = nn.Sequential(*modules_scale, nn.Tanh())
+        self.translate_net = nn.Sequential(*modules_translate)
 
     def forward_flow(self, x):
         masked_x = x * self.mask
