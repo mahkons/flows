@@ -42,7 +42,6 @@ class RealNVP():
                 CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
         ])
         self.model.to(device)
-
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.prior = torch.distributions.Normal(torch.tensor(0., device=device),
                 torch.tensor(1., device=device))
