@@ -8,11 +8,11 @@ class ResnetBlock(nn.Module):
 
         conv_layer = lambda: nn.Conv2d(n_channels, n_channels, 3, padding=1)
 
-        modules = [nn.BatchNorm2d(n_channels)] if with_batch_norm else [] \
-                + [nn.utils.weight_norm(conv_layer())] if with_weight_norm else [conv_layer()] \
-                + [nn.ReLU()] \
+        modules = [nn.utils.weight_norm(conv_layer())] if with_weight_norm else [conv_layer()] \
                 + [nn.BatchNorm2d(n_channels)] if with_batch_norm else [] \
+                + [nn.ReLU()] \
                 + [nn.utils.weight_norm(conv_layer())] if with_weight_norm else [conv_layer()]
+                + [nn.BatchNorm2d(n_channels)] if with_batch_norm else [] \
 
         self.model = nn.Sequential(*modules)
 
