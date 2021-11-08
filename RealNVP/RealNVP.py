@@ -6,6 +6,7 @@ from models import SequentialFlow, Flow, CouplingLayer, ActNorm
 from utils import get_mask
 
 SCALE_L2_REG_COEFF = 5e-5
+MAX_GRAD_NORM = 10.
 
 class RealNVP():
     def __init__(self, image_shape, hidden_channels, num_resnet, lr, device):
@@ -64,6 +65,7 @@ class RealNVP():
         loss = l2reg - log_prob
         self.optimizer.zero_grad()
         loss.backward()
+        nn.utils.clip_grad_norm_(self.model.parameters(), MAX_GRAD_NORM)
         self.optimizer.step()
 
         return -log_prob.item(), l2reg.item()

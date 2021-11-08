@@ -9,15 +9,16 @@ import math
 from RealNVP import RealNVP, RealNVPImageTransform
 from utils import init_logger, log
 
-BATCH_SIZE = 2
+BATCH_SIZE = 2 # increase to 64 to train
 LR = 1e-3
 NUM_RESNET = 4
 HIDDEN_CHANNELS = 64
 device = torch.device("cpu")
 
 def sample(model):
+    alpha = 0.01
     images = model.sample(10)
-    images = ((torch.sigmoid(images) - 0.01) / 0.98).clip(0., 1.)
+    images = ((torch.sigmoid(images) - alpha) / (1 - 2 * alpha)).clip(0., 1.)
     grid_img = torchvision.utils.make_grid(images, nrow=5)
     plt.imshow(grid_img.permute(1, 2, 0).cpu().numpy())
     plt.show()
@@ -42,9 +43,9 @@ def train(train_dataset, test_dataset):
             lr=LR,
             device=device
     )
-    #  model.load("../pretrained/RealNVP.torch")
-    #  sample(model)
-    #  return
+    model.load("../pretrained/RealNVP.torch")
+    sample(model)
+    return
 
     log().add_plot("loss", ["epoch", "nll_loss", "l2reg"])
     log().add_plot("test", ["epoch", "nll_loss"])
