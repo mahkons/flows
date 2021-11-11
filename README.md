@@ -6,4 +6,4 @@ few flow based models
 
 No multiscaling and ActNorm from [Glow](https://arxiv.org/abs/1807.03039) instead of batch normalization
 
-![realnvp_mnist](https://github.com/mahkons/flows/generated/realnvp_mnist.png?raw=true)
+![realnvp_mnist](generated/realnvp_mnist.png?raw=true)
