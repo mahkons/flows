@@ -10,12 +10,13 @@ from RealNVP import RealNVP, RealNVPImageTransform
 from utils import init_logger, log
 
 BATCH_SIZE = 2 # increase to 64 to train
-LR = 1e-3
-NUM_RESNET = 4
+LR = 5e-4
+NUM_RESNET = 8
 HIDDEN_CHANNELS = 64
 device = torch.device("cpu")
 
 def sample(model):
+    model.model.eval()
     alpha = 0.01
     images = model.sample(10)
     images = ((torch.sigmoid(images) - alpha) / (1 - 2 * alpha)).clip(0., 1.)

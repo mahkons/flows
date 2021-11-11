@@ -6,7 +6,7 @@ from models import SequentialFlow, Flow, CouplingLayer, ActNorm
 from utils import get_mask
 
 SCALE_L2_REG_COEFF = 5e-5
-MAX_GRAD_NORM = 10.
+MAX_GRAD_NORM = 100.
 
 class RealNVP():
     def __init__(self, image_shape, hidden_channels, num_resnet, lr, device):
@@ -44,6 +44,7 @@ class RealNVP():
         ])
         self.model.to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
+        self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.1, total_iters=1000)
         self.prior = torch.distributions.Normal(torch.tensor(0., device=device),
                 torch.tensor(1., device=device))
 
@@ -67,6 +68,7 @@ class RealNVP():
         loss.backward()
         nn.utils.clip_grad_norm_(self.model.parameters(), MAX_GRAD_NORM)
         self.optimizer.step()
+        self.scheduler.step()
 
         return -log_prob.item(), l2reg.item()
 
