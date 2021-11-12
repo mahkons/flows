@@ -33,7 +33,7 @@ class MAF():
             with torch.no_grad():
                 self.model.data_init(images)
             self.initialized = True
-        loss = -self.get_log_prob(images).mean()
+        loss = -self._get_log_prob(images).mean()
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -44,7 +44,10 @@ class MAF():
         return loss.item()
 
     def get_log_prob(self, images):
-        images = images.to(self.device)
+        images = torch.flatten(images.to(self.device), start_dim=1)
+        return self._get_log_prob(images)
+
+    def _get_log_prob(self, images):
         prediction, log_jac = self.model.forward_flow(images)
         log_prob = self.prior.log_prob(prediction).sum(dim=1) + log_jac
         return log_prob
