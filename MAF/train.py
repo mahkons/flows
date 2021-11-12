@@ -3,6 +3,7 @@ sys.path.append("..")
 
 import torch
 import torchvision
+import matplotlib.pyplot as plt
 
 from utils import init_logger, log
 from MAF import MAF, MAFImageTransform
