@@ -38,7 +38,7 @@ class ActNorm(Flow):
     def data_init(self, x):
         self.mean.data = x.mean(dim=(0,))
         d = ((x - self.mean) ** 2).mean(dim=(0,))
-        self.log_s.data = torch.log(torch.sqrt(d))
+        self.log_s.data = torch.log(torch.sqrt(d) + 1e-6)
 
         return self.forward_flow(x)[0]
 

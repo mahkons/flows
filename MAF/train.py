@@ -8,9 +8,9 @@ from utils import init_logger, log
 from MAF import MAF, MAFImageTransform
 
 
-BATCH_SIZE = 2 # increase to 64 to train
+BATCH_SIZE = 64 # increase to 64 to train
 HIDDEN_DIM = 2048
-NUM_BLOCKS = 1
+NUM_BLOCKS = 2
 LR = 1e-4
 device = torch.device("cuda")
 

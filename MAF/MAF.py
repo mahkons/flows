@@ -13,9 +13,10 @@ class MAF():
         self.D = torch.prod(torch.tensor(image_shape))
         self.device = device
 
-        self.model = SequentialFlow(sum([
-            [MADE(self.D, hidden_dim), ActNorm(self.D), Reverse()] for _ in range(num_blocks)
-        ], []))
+        self.model = SequentialFlow(sum(
+            [[MADE(self.D, hidden_dim), ActNorm(self.D), Reverse()] for _ in range(num_blocks - 1)] \
+            + [[MADE(self.D, hidden_dim)]], 
+        []))
         self.model.to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.1, total_iters=1000)
