@@ -5,6 +5,7 @@ import torchvision.transforms as T
 from models import MADE, Reverse, SequentialFlow, ActNorm
 
 MAX_GRAD_NORM = 100.
+WEIGHT_DECAY = 1e-6
 
 class MAF():
     def __init__(self, image_shape, hidden_dim, num_blocks, lr, device):
@@ -18,7 +19,7 @@ class MAF():
             + [[MADE(self.D, hidden_dim)]], 
         []))
         self.model.to(device)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
         self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.1, total_iters=1000)
         self.prior = torch.distributions.Normal(torch.tensor(0., device=device),
                 torch.tensor(1., device=device))
