@@ -10,8 +10,9 @@ from MAF import MAF, MAFImageTransform
 
 BATCH_SIZE = 64 # increase to 64 to train
 HIDDEN_DIM = 2048
-NUM_BLOCKS = 2
+NUM_BLOCKS = 5
 LR = 1e-4
+EPOCHS = 200
 device = torch.device("cuda")
 
 def sample(model):
@@ -37,11 +38,15 @@ def train(train_dataset, test_dataset):
     dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     image_shape = train_dataset[0][0].shape
     model = MAF(image_shape, HIDDEN_DIM, NUM_BLOCKS, LR, device)
+    model.load("../pretrained/MAF.torch")
+    sample(model)
+    return
 
     log().add_plot("loss", ["epoch", "nll_loss"])
     log().add_plot("test", ["epoch", "nll_loss"])
 
-    epochs = 2
+    epochs = EPOCHS
+    best_test_loss = 1e18
     for epoch in range(epochs):
         print("Epoch {}/{}".format(epoch, epochs))
         sum_nll_loss, steps = 0., 0.
@@ -55,8 +60,11 @@ def train(train_dataset, test_dataset):
             if batch_idx % 100 == 0:
                 log().add_plot_point("loss", [epoch, sum_nll_loss / steps])
 
-        log().add_plot_point("test", [epoch, test(test_dataset, model)/D])
-        model.save("../pretrained/MAF.torch")
+        test_loss = test(test_dataset, model) / D
+        log().add_plot_point("test", [epoch, test_loss])
+        if best_test_loss > test_loss:
+            best_test_loss = test_loss
+            model.save("../pretrained/MAF.torch")
 
 
 def load_dataset(dataset):

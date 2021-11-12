@@ -54,7 +54,10 @@ class MAF():
 
     def sample(self, batch_size):
         with torch.no_grad():
-            raise NotImplementedError
+            z = self.prior.sample([batch_size] + list(self.D))
+            x, _ = self.model.inverse_flow(z)
+            x.reshape([batch_size] + list(self.image_shape))
+        return x
 
 
     def save(self, path):
