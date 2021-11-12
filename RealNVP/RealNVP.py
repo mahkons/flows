@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 
-from models import SequentialFlow, Flow, CouplingLayer, ActNorm
+from models import SequentialFlow, Flow, CouplingLayer, ActNormImage
 from utils import get_mask
 
 SCALE_L2_REG_COEFF = 5e-5
@@ -19,27 +19,27 @@ class RealNVP():
         channelwise_mask = get_mask(squeezed_shape, "channelwise", device)
         self.model = SequentialFlow([
                 CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
-                ActNorm(image_shape[0]),
+                ActNormImage(image_shape[0]),
                 CouplingLayer(image_shape, hidden_channels, num_resnet, 1 - mask),
-                ActNorm(image_shape[0]),
+                ActNormImage(image_shape[0]),
                 CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
-                ActNorm(image_shape[0]),
+                ActNormImage(image_shape[0]),
                 CouplingLayer(image_shape, hidden_channels, num_resnet, 1 - mask),
-                ActNorm(image_shape[0]),
+                ActNormImage(image_shape[0]),
                 Squeeze(),
 
                 CouplingLayer(squeezed_shape, hidden_channels, num_resnet, channelwise_mask),
-                ActNorm(squeezed_shape[0]),
+                ActNormImage(squeezed_shape[0]),
                 CouplingLayer(squeezed_shape, hidden_channels, num_resnet, 1 - channelwise_mask),
-                ActNorm(squeezed_shape[0]),
+                ActNormImage(squeezed_shape[0]),
                 CouplingLayer(squeezed_shape, hidden_channels, num_resnet, channelwise_mask),
-                ActNorm(squeezed_shape[0]),
+                ActNormImage(squeezed_shape[0]),
                 Unsqueeze(),
 
                 CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
-                ActNorm(image_shape[0]),
+                ActNormImage(image_shape[0]),
                 CouplingLayer(image_shape, hidden_channels, num_resnet, 1 - mask),
-                ActNorm(image_shape[0]),
+                ActNormImage(image_shape[0]),
                 CouplingLayer(image_shape, hidden_channels, num_resnet, mask),
         ])
         self.model.to(device)
