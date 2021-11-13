@@ -19,7 +19,7 @@ class MADE(Flow):
             nn.ELU(),
             MaskedLinear(hidden_dim, hidden_dim, order_hidden[:, None] >= order_hidden[None]),
             nn.ELU(),
-            MaskedLinear(hidden_dim, 2 * dim, order_out[:, None] >= order_hidden[None])
+            MaskedLinear(hidden_dim, 2 * dim, order_out[:, None] > order_hidden[None])
         )
         self.log_scale_scale = nn.Parameter(torch.tensor(0., dtype=torch.float))
 
@@ -29,9 +29,10 @@ class MADE(Flow):
         return x * torch.exp(log_s) + t, log_s.sum(dim=1)
 
     def inverse_flow(self, x):
+        u = x
         for i in range(1, x.shape[1]):
             log_s, t = self.model(x).chunk(2, dim=1)
             log_s = torch.tanh(log_s) * self.log_scale_scale
-            x = (x - t) * torch.exp(-log_s)
+            x = (u - t) * torch.exp(-log_s)
         return x, -log_s.sum(dim=1)
 
