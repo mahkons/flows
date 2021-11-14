@@ -10,11 +10,11 @@ from MAF import MAF, MAFImageTransform
 
 
 BATCH_SIZE = 64 # increase to 64 to train
-HIDDEN_DIM = 2048
-NUM_BLOCKS = 5
+HIDDEN_DIM = 4096
+NUM_BLOCKS = 10
 LR = 1e-4
 EPOCHS = 200
-device = torch.device("cuda")
+device = torch.device("cpu")
 
 def sample(model):
     model.model.eval()
@@ -39,9 +39,9 @@ def train(train_dataset, test_dataset):
     dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     image_shape = train_dataset[0][0].shape
     model = MAF(image_shape, HIDDEN_DIM, NUM_BLOCKS, LR, device)
-    model.load("../pretrained/MAF.torch")
-    sample(model)
-    return
+    #  model.load("../pretrained/MAF.torch")
+    #  sample(model)
+    #  return
 
     log().add_plot("loss", ["epoch", "nll_loss"])
     log().add_plot("test", ["epoch", "nll_loss"])

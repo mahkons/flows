@@ -44,9 +44,9 @@ def train(train_dataset, test_dataset):
             lr=LR,
             device=device
     )
-    model.load("../pretrained/RealNVP.torch")
-    sample(model)
-    return
+    #  model.load("../pretrained/RealNVP.torch")
+    #  sample(model)
+    #  return
 
     log().add_plot("loss", ["epoch", "nll_loss", "l2reg"])
     log().add_plot("test", ["epoch", "nll_loss"])

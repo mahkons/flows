@@ -56,7 +56,7 @@ class MAF():
         with torch.no_grad():
             z = self.prior.sample([batch_size, self.D])
             x, _ = self.model.inverse_flow(z)
-            x.reshape([batch_size] + list(self.image_shape))
+            x = x.reshape([batch_size] + list(self.image_shape))
         return x
 
 
@@ -67,7 +67,7 @@ class MAF():
         }, path)
 
     def load(self, path):
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=self.device)
         self.model.load_state_dict(state_dict["model"])
         self.optimizer.load_state_dict(state_dict["optimizer"])
 
