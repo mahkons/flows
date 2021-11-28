@@ -30,9 +30,10 @@ def sample(model):
 def test(test_dataset, model):
     dataloader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=2 * BATCH_SIZE, shuffle=False, num_workers=4)
     sum = 0.
-    for images, _ in dataloader:
+    for images, labels in dataloader:
         with torch.no_grad():
-            sum += model.get_log_prob(images).mean().item()
+            sum += model.get_log_prob(torch.flatten(images.to(device), start_dim=1),
+                    torch.nn.functional.one_hot(labels.to(device), cond_dim)).mean().item()
     return -sum / len(dataloader)
     
 def train(train_dataset, test_dataset):
