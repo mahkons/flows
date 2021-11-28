@@ -49,7 +49,7 @@ class MAF(nn.Module):
 
     def sample(self, batch_size, conditions):
         with torch.no_grad():
-            z = self.prior.sample([batch_size, self.D])
+            z = self.prior.sample([batch_size, self.flow_dim])
             x, _ = self.model.inverse_flow(z, conditions)
         return x
 

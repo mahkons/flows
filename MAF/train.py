@@ -10,18 +10,18 @@ from MAF import MAF, MAFImageTransform
 
 
 BATCH_SIZE = 8 # increase to 64 to train
-HIDDEN_DIM = 1024
-NUM_BLOCKS = 5
+HIDDEN_DIM = 4096
+NUM_BLOCKS = 10
 LR = 1e-4
 EPOCHS = 200
-device = torch.device("cuda")
+device = torch.device("cpu")
 COND_DIM = 10
 
 
 def sample(model):
     model.model.eval()
     alpha = 0.01
-    images = model.sample(10)
+    images = model.sample(10, torch.nn.functional.one_hot(torch.arange(10), 10)).reshape(-1, 1, 28, 28)
     images = ((torch.sigmoid(images) - alpha) / (1 - 2 * alpha)).clip(0., 1.)
     grid_img = torchvision.utils.make_grid(images, nrow=5)
     plt.imshow(grid_img.permute(1, 2, 0).cpu().numpy())
@@ -43,9 +43,10 @@ def train(train_dataset, test_dataset):
     D = torch.prod(torch.tensor(image_shape)).item()
 
     model = MAF(D, COND_DIM, HIDDEN_DIM, NUM_BLOCKS, LR, device)
-    #  model.load("../pretrained/MAF.torch")
-    #  sample(model)
-    #  return
+    model.load("../pretrained/MAF_cond.torch")
+    print("Model loaded successfully")
+    sample(model)
+    return
 
     log().add_plot("loss", ["epoch", "nll_loss"])
     log().add_plot("test", ["epoch", "nll_loss"])
