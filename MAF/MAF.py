@@ -2,38 +2,37 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 
-from models import MADE, Reverse, SequentialFlow, ActNorm
+from models import MADE, Shuffle, SequentialConditionalFlow, ActNorm
 
 MAX_GRAD_NORM = 100.
 WEIGHT_DECAY = 1e-6
 
-class MAF():
-    def __init__(self, image_shape, hidden_dim, num_blocks, lr, device):
-        assert(len(image_shape) == 3)
-        self.image_shape = image_shape
-        self.D = torch.prod(torch.tensor(image_shape))
+class MAF(nn.Module):
+    def __init__(self, flow_dim, cond_dim, hidden_dim, num_blocks, lr, device):
+        super(MAF, self).__init__()
+        self.flow_dim = flow_dim
         self.device = device
 
-        self.model = SequentialFlow(sum(
-            [[MADE(self.D, hidden_dim), ActNorm(self.D), Reverse()] for _ in range(num_blocks - 1)] \
-            + [[MADE(self.D, hidden_dim)]], 
+        self.model = SequentialConditionalFlow(sum(
+            [[MADE(flow_dim, cond_dim, hidden_dim), ActNorm(flow_dim), Shuffle(torch.randperm(flow_dim))] \
+                    for _ in range(num_blocks - 1)] \
+            + [[MADE(flow_dim, cond_dim, hidden_dim)]], 
         []))
         self.model.to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
-        self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.1, total_iters=1000)
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lambda step: min(step, 1000) / 1000.)
         self.prior = torch.distributions.Normal(torch.tensor(0., device=device),
                 torch.tensor(1., device=device))
 
         self.initialized = False
 
 
-    def train(self, images):
-        images = torch.flatten(images.to(self.device), start_dim=1)
+    def train(self, inputs, conditions):
         if not self.initialized:
             with torch.no_grad():
-                self.model.data_init(images)
+                self.model.data_init(inputs, conditions)
             self.initialized = True
-        loss = -self._get_log_prob(images).mean()
+        loss = -self.get_log_prob(inputs, conditions).mean()
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -43,20 +42,15 @@ class MAF():
 
         return loss.item()
 
-    def get_log_prob(self, images):
-        images = torch.flatten(images.to(self.device), start_dim=1)
-        return self._get_log_prob(images)
-
-    def _get_log_prob(self, images):
-        prediction, log_jac = self.model.forward_flow(images)
+    def get_log_prob(self, inputs, conditions):
+        prediction, log_jac = self.model.forward_flow(inputs, conditions)
         log_prob = self.prior.log_prob(prediction).sum(dim=1) + log_jac
         return log_prob
 
-    def sample(self, batch_size):
+    def sample(self, batch_size, conditions):
         with torch.no_grad():
             z = self.prior.sample([batch_size, self.D])
-            x, _ = self.model.inverse_flow(z)
-            x = x.reshape([batch_size] + list(self.image_shape))
+            x, _ = self.model.inverse_flow(z, conditions)
         return x
 
 

@@ -1,4 +1,4 @@
-from .Flow import Flow, SequentialFlow
+from .Flow import ConditionalFlow, SequentialConditionalFlow, Flow, SequentialFlow
 from .CouplingLayer import CouplingLayer
 from .ResNet import ResnetBlock
 from .NormFunctions import ActNorm, ActNormImage

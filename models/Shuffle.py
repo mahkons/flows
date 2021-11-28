@@ -1,32 +1,34 @@
 import torch
 import torch.nn as nn
 
-from .Flow import Flow
+from .Flow import ConditionalFlow
 
 
-class Shuffle(Flow):
+class Shuffle(ConditionalFlow):
     def __init__(self, p):
         super(Shuffle, self).__init__()
         self.register_buffer("p", p)
-        self.register_buffer("inv_p", __inverse_permutation(p))
+        inv = torch.empty_like(p)
+        inv[p] = torch.arange(len(p), device=p.device, dtype=p.dtype)
+        self.register_buffer("inv_p", inv)
 
-    def forward_flow(self, x):
-        return x[:, p],  0.
+    def forward_flow(self, x, condition=None):
+        return x[:, self.p],  0.
 
-    def inverse_flow(self, x):
-        return x[:, inv_p], 0.
+    def inverse_flow(self, x, condition=None):
+        return x[:, self.inv_p], 0.
 
 
-class Reverse(Flow):
-    def forward_flow(self, x):
+class Reverse(ConditionalFlow):
+    def forward_flow(self, x, condition=None):
         return torch.flip(x, [len(x.shape) - 1]), 0.
 
-    def inverse_flow(self, x):
+    def inverse_flow(self, x, condition=None):
         return torch.flip(x, [len(x.shape) - 1]), 0.
-
 
 
 def __inverse_permutation(p):
     inv = torch.empty_like(p)
-    inv[p] = torch.arange(p.shape, device=p.device, dtype=a.dtype)
+    inv[p] = torch.arange(p.shape, device=p.device, dtype=p.dtype)
     return inv
+
