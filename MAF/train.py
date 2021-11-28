@@ -15,6 +15,7 @@ NUM_BLOCKS = 5
 LR = 1e-4
 EPOCHS = 200
 device = torch.device("cuda")
+COND_DIM = 10
 
 
 def sample(model):
@@ -33,16 +34,15 @@ def test(test_dataset, model):
     for images, labels in dataloader:
         with torch.no_grad():
             sum += model.get_log_prob(torch.flatten(images.to(device), start_dim=1),
-                    torch.nn.functional.one_hot(labels.to(device), cond_dim)).mean().item()
+                    torch.nn.functional.one_hot(labels.to(device), COND_DIM)).mean().item()
     return -sum / len(dataloader)
     
 def train(train_dataset, test_dataset):
     dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     image_shape = train_dataset[0][0].shape
     D = torch.prod(torch.tensor(image_shape)).item()
-    cond_dim = 10
 
-    model = MAF(D, cond_dim, HIDDEN_DIM, NUM_BLOCKS, LR, device)
+    model = MAF(D, COND_DIM, HIDDEN_DIM, NUM_BLOCKS, LR, device)
     #  model.load("../pretrained/MAF.torch")
     #  sample(model)
     #  return
@@ -57,7 +57,7 @@ def train(train_dataset, test_dataset):
         sum_nll_loss, steps = 0., 0.
         for batch_idx, (images, labels) in enumerate(dataloader):
             nll_loss = model.train(torch.flatten(images.to(device), start_dim=1),
-                    torch.nn.functional.one_hot(labels.to(device), cond_dim))
+                    torch.nn.functional.one_hot(labels.to(device), COND_DIM))
 
             steps += 1
             sum_nll_loss += nll_loss / D
