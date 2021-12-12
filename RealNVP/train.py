@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import math
 
 from RealNVP import RealNVP, RealNVPImageTransform
+from RealNVP_linear import RealNVPLinear
 from utils import init_logger, log
 
 BATCH_SIZE = 2 # increase to 64 to train
@@ -30,17 +31,18 @@ def test(test_dataset, model):
     sum = 0.
     for images, _ in dataloader:
         with torch.no_grad():
-            sum += model.get_log_prob(images).mean().item()
+            sum += model.get_log_prob(torch.flatten(images, start_dim=1)).mean().item()
     return sum / len(dataloader)
     
 
 def train(train_dataset, test_dataset):
     dataloader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     image_shape = train_dataset[0][0].shape
-    model = RealNVP(
-            image_shape=image_shape,
-            hidden_channels=HIDDEN_CHANNELS,
-            num_resnet=NUM_RESNET,
+    D = torch.prod(torch.tensor(image_shape)).item()
+    model = RealNVPLinear(
+            input_shape=D,
+            hidden_shape=HIDDEN_CHANNELS,
+            num_hidden=NUM_RESNET,
             lr=LR,
             device=device
     )
@@ -55,9 +57,8 @@ def train(train_dataset, test_dataset):
     for epoch in range(epochs):
         print("Epoch {}/{}".format(epoch, epochs))
         sum_nll_loss, sum_l2reg, steps = 0., 0., 0
-        D = torch.prod(torch.tensor(image_shape)).item()
         for batch_idx, (image, _) in enumerate(dataloader):
-            nll_loss, l2reg = model.train(image)
+            nll_loss, l2reg = model.train(torch.flatten(image, start_dim=1))
 
             steps += 1
             sum_nll_loss += nll_loss / D
