@@ -46,11 +46,11 @@ class CouplingLayerLinear(Flow):
         self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
 
         modules_scale = [nn.utils.weight_norm(nn.Linear(input_shape, hidden_shape)), nn.ReLU()] \
-            + [nn.utils.weight_norm(nn.Linear(hidden_shape, hidden_shape)) for _ in range(num_hidden)] \
+            + sum([[nn.utils.weight_norm(nn.Linear(hidden_shape, hidden_shape)), nn.ReLU()] for _ in range(num_hidden)], []) \
             + [nn.utils.weight_norm(nn.Linear(hidden_shape, input_shape))]
 
         modules_translate = [nn.utils.weight_norm(nn.Linear(input_shape, hidden_shape)), nn.ReLU()] \
-            + [nn.utils.weight_norm(nn.Linear(hidden_shape, hidden_shape)) for _ in range(num_hidden)] \
+            + sum([[nn.utils.weight_norm(nn.Linear(hidden_shape, hidden_shape)), nn.ReLU()] for _ in range(num_hidden)], []) \
             + [nn.utils.weight_norm(nn.Linear(hidden_shape, input_shape))]
 
         self.scale_net = nn.Sequential(*modules_scale, nn.Tanh())
