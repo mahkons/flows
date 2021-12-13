@@ -12,8 +12,8 @@ from utils import init_logger, log
 
 BATCH_SIZE = 2 # increase to 64 to train
 LR = 5e-4
-NUM_RESNET = 8
-HIDDEN_CHANNELS = 64
+NUM_RESNET = 2
+HIDDEN_CHANNELS = 1024
 device = torch.device("cpu")
 
 def sample(model):
@@ -46,9 +46,9 @@ def train(train_dataset, test_dataset):
             lr=LR,
             device=device
     )
-    #  model.load("../pretrained/RealNVP.torch")
-    #  sample(model)
-    #  return
+    model.load("../pretrained/RealNVP.torch")
+    sample(model)
+    return
 
     log().add_plot("loss", ["epoch", "nll_loss", "l2reg"])
     log().add_plot("test", ["epoch", "nll_loss"])

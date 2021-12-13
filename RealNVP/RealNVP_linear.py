@@ -75,9 +75,9 @@ class RealNVPLinear():
 
     def sample(self, batch_size):
         with torch.no_grad():
-            z = self.prior.sample([batch_size] + list(self.input_shape))
+            z = self.prior.sample([batch_size, self.input_shape])
             x, _ = self.model.inverse_flow(z)
-            return x.reshape((3, 28, 28))
+            return x.reshape((batch_size, 1, 28, 28))
 
 
     def save(self, path):
@@ -87,7 +87,7 @@ class RealNVPLinear():
         }, path)
 
     def load(self, path):
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=torch.device("cpu"))
         self.model.load_state_dict(state_dict["model"])
         self.optimizer.load_state_dict(state_dict["optimizer"])
 
