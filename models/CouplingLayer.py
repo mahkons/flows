@@ -15,7 +15,7 @@ class CouplingLayer(Flow):
 
         modules = [nn.utils.weight_norm(nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1)), nn.ReLU()] \
             + [ResnetBlock(hidden_channels, True, True) for _ in range(num_resnet)] \
-            + [nn.utils.weight_norm(nn.Conv2d(hidden_channels, 2 * image_channels, kernel_size=3, padding=1))
+            + [nn.utils.weight_norm(nn.Conv2d(hidden_channels, 2 * image_channels, kernel_size=3, padding=1))]
 
         self.model = nn.Sequential(*modules)
 
