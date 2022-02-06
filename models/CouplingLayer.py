@@ -13,27 +13,22 @@ class CouplingLayer(Flow):
         self.register_buffer("mask", mask)
         self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
 
-        modules_scale = [nn.utils.weight_norm(nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1)), nn.ReLU()] \
+        modules = [nn.utils.weight_norm(nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1)), nn.ReLU()] \
             + [ResnetBlock(hidden_channels, True, True) for _ in range(num_resnet)] \
-            + [nn.utils.weight_norm(nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1))]
+            + [nn.utils.weight_norm(nn.Conv2d(hidden_channels, 2 * image_channels, kernel_size=3, padding=1))
 
-        modules_translate = [nn.utils.weight_norm(nn.Conv2d(image_channels, hidden_channels, kernel_size=3, padding=1)), nn.ReLU()] \
-            + [ResnetBlock(hidden_channels, True, True) for _ in range(num_resnet)] \
-            + [nn.utils.weight_norm(nn.Conv2d(hidden_channels, image_channels, kernel_size=3, padding=1))]
-
-        self.scale_net = nn.Sequential(*modules_scale, nn.Tanh())
-        self.translate_net = nn.Sequential(*modules_translate)
+        self.model = nn.Sequential(*modules)
 
     def forward_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.log_scale_scale * self.scale_net(masked_x)
-        t = self.translate_net(masked_x)
+        log_s, t = self.model(masked_x).chunk(2, dim=-1)
+        log_s = torch.tanh(log_s) * self.log_scale_scale
         return masked_x + (1 - self.mask) * (x * torch.exp(log_s) + t), (log_s * (1 - self.mask)).sum(dim=(1,2,3))
 
     def inverse_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.log_scale_scale * self.scale_net(masked_x)
-        t = self.translate_net(masked_x)
+        log_s, t = self.model(masked_x).chunk(2, dim=-1)
+        log_s = torch.tanh(log_s) * self.log_scale_scale
         return masked_x + (1 - self.mask) * ((x - t) * torch.exp(-log_s)), -(log_s * (1 - self.mask)).sum(dim=(1,2,3))
 
 
@@ -45,25 +40,20 @@ class CouplingLayerLinear(Flow):
         self.register_buffer("mask", mask)
         self.register_parameter("log_scale_scale", nn.Parameter(torch.tensor(0., dtype=torch.float)))
 
-        modules_scale = [nn.utils.weight_norm(nn.Linear(input_shape, hidden_shape)), nn.ReLU()] \
+        modules = [nn.utils.weight_norm(nn.Linear(input_shape, hidden_shape)), nn.ReLU()] \
             + sum([[nn.utils.weight_norm(nn.Linear(hidden_shape, hidden_shape)), nn.ReLU()] for _ in range(num_hidden)], []) \
-            + [nn.utils.weight_norm(nn.Linear(hidden_shape, input_shape))]
+            + [nn.utils.weight_norm(nn.Linear(hidden_shape, 2 * input_shape))]
 
-        modules_translate = [nn.utils.weight_norm(nn.Linear(input_shape, hidden_shape)), nn.ReLU()] \
-            + sum([[nn.utils.weight_norm(nn.Linear(hidden_shape, hidden_shape)), nn.ReLU()] for _ in range(num_hidden)], []) \
-            + [nn.utils.weight_norm(nn.Linear(hidden_shape, input_shape))]
-
-        self.scale_net = nn.Sequential(*modules_scale, nn.Tanh())
-        self.translate_net = nn.Sequential(*modules_translate)
+        self.model = nn.Sequential(*modules)
 
     def forward_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.log_scale_scale * self.scale_net(masked_x)
-        t = self.translate_net(masked_x)
+        log_s, t = self.model(masked_x).chunk(2, dim=-1)
+        log_s = torch.tanh(log_s) * self.log_scale_scale
         return masked_x + (1 - self.mask) * (x * torch.exp(log_s) + t), (log_s * (1 - self.mask)).sum(dim=1)
 
     def inverse_flow(self, x):
         masked_x = x * self.mask
-        log_s = self.log_scale_scale * self.scale_net(masked_x)
-        t = self.translate_net(masked_x)
+        log_s, t = self.model(masked_x).chunk(2, dim=-1)
+        log_s = torch.tanh(log_s) * self.log_scale_scale
         return masked_x + (1 - self.mask) * ((x - t) * torch.exp(-log_s)), -(log_s * (1 - self.mask)).sum(dim=1)
