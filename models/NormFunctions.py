@@ -17,7 +17,7 @@ class ActNormImage(ConditionalFlow):
 
     def data_init(self, x, condition=None):
         self.mean.data = x.mean(dim=(0, 2, 3))[:, None, None]
-        d = ((x - self.mean) ** 2).mean(dim=(0, 2, 3))[:, None, None]
+        d = torch.var(x, dim=(0, 2, 3))[:, None, None]
         self.log_s.data = torch.log(torch.sqrt(d) + 0.1)
 
         return self.forward_flow(x, condition=None)[0]
@@ -37,7 +37,7 @@ class ActNorm(ConditionalFlow):
 
     def data_init(self, x, condition=None):
         self.mean.data = x.mean(dim=(0,))
-        d = ((x - self.mean) ** 2).mean(dim=(0,))
+        d = torch.var(x, dim=0)
         self.log_s.data = torch.log(torch.sqrt(d) + 0.1)
 
         return self.forward_flow(x, condition)[0]
